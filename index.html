@@ -4,129 +4,457 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🏀 Basketball Live Tracker</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0b1016; --surface: #131b26; --surface2: #1b2636; --border: #28374d;
-    --accent: #f5a623; --accent-hover: #ffb845; --accent2: #00e5a0; 
-    --live: #22c55e; --upcoming: #3b82f6; --finished: #6b7280; 
-    --text: #f0f4f8; --text-muted: #8498af; --text-dim: #a1b4cc;
+    --bg: #0b0f17;
+    --surface: #131a26;
+    --surface-hover: #1c2536;
+    --border: #222e42;
+    --border-hover: #374a6b;
+    --accent: #f5a623;
+    --accent-glow: rgba(245, 166, 35, 0.2);
+    --accent2: #00e5a0;
+    --live: #10b981;
+    --upcoming: #3b82f6;
+    --finished: #6b7280;
+    --text: #f3f4f6;
+    --text-muted: #9ca3af;
+    --text-dim: #6b7280;
+    --radius-md: 10px;
+    --radius-lg: 16px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
-  body::before { content: ''; position: fixed; top: -200px; left: 50%; transform: translateX(-50%); width: 900px; height: 500px; background: radial-gradient(ellipse, rgba(245,166,35,0.06) 0%, transparent 70%); pointer-events: none; z-index: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  
+  /* Ambient Background Glow */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -300px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1000px;
+    height: 600px;
+    background: radial-gradient(ellipse, rgba(245,166,35,0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
 
-  /* Header */
-  header { position: relative; z-index: 1; padding: 24px 32px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; background: rgba(11, 16, 22, 0.8); backdrop-filter: blur(8px); }
-  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 2px; color: var(--accent); display: flex; align-items: center; gap: 10px; text-shadow: 0 2px 10px rgba(245,166,35,0.2); }
+  /* --- HEADER --- */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    background: rgba(11, 15, 23, 0.8);
+    backdrop-filter: blur(12px);
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 34px;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-shadow: 0 0 20px var(--accent-glow);
+  }
   .logo span { color: var(--text); }
-  .header-right { display: flex; align-items: center; gap: 16px; }
-  .meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); text-align: right; line-height: 1.8; }
-  .meta strong { color: var(--accent2); }
-  .refresh-btn { font-family: 'DM Mono', monospace; font-size: 12px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
-  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(245,166,35,0.05); }
-  .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right;
+    line-height: 1.6;
+  }
+  .meta strong { color: var(--accent2); font-weight: 500; }
+  .refresh-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .refresh-btn:hover {
+    border-color: var(--accent);
+    background: var(--surface-hover);
+    color: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+  .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 
-  /* Filters Bar */
-  .filters-bar { position: relative; z-index: 1; padding: 16px 32px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-  .filter-group { display: flex; align-items: center; gap: 12px; }
-  .filter-label { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+  /* --- FILTERS BAR (DROPDOWNS) --- */
+  .filters-bar {
+    position: relative;
+    z-index: 5;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(19, 26, 38, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .filter-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
   
-  /* Form Inputs (Select & Date) */
-  .styled-input { appearance: none; -webkit-appearance: none; font-family: 'DM Mono', monospace; font-size: 12px; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: 8px; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; outline: none; }
-  .styled-input:focus, .styled-input:hover { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(245,166,35,0.1); }
-  
-  /* Custom Dropdown Arrow */
-  .select-wrapper { position: relative; display: flex; align-items: center; }
-  .select-wrapper::after { content: '▼'; font-size: 9px; color: var(--text-muted); position: absolute; right: 14px; pointer-events: none; }
-  .styled-select { padding-right: 32px; min-width: 160px; }
-  .styled-select option { background: var(--bg); color: var(--text); }
-  
-  .date-input::-webkit-calendar-picker-indicator { filter: invert(0.7) sepia(1) hue-rotate(180deg); cursor: pointer; }
-  .filter-divider { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
-  .clear-btn { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); background: transparent; border: none; cursor: pointer; padding: 8px 12px; border-radius: 6px; transition: color 0.2s, background 0.2s; }
-  .clear-btn:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
-  .results-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); margin-left: auto; background: var(--surface2); padding: 6px 12px; border-radius: 20px; }
+  /* Custom Select Style */
+  select.dropdown, input[type="date"].date-input {
+    background-color: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 36px 8px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    appearance: none;
+  }
+  select.dropdown {
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%239ca3af" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    min-width: 180px;
+  }
+  input[type="date"].date-input {
+    padding-right: 14px; /* Default date picker overrides some padding */
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+    cursor: pointer;
+  }
+  select.dropdown:hover, input[type="date"].date-input:hover,
+  select.dropdown:focus, input[type="date"].date-input:focus {
+    border-color: var(--accent);
+    background-color: var(--surface-hover);
+  }
+
+  .clear-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+  .clear-btn:hover { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+  .results-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: auto;
+    background: var(--surface);
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
   .results-count strong { color: var(--text); }
 
-  /* Modern Segmented Tabs */
-  .tabs-container { padding: 24px 32px 0; position: relative; z-index: 1; display: flex; justify-content: center; }
-  .tabs { display: inline-flex; background: var(--surface); padding: 6px; border-radius: 12px; border: 1px solid var(--border); gap: 4px; }
-  .tab { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; padding: 10px 24px; cursor: pointer; border: none; border-radius: 8px; color: var(--text-muted); background: transparent; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 8px; }
-  .tab:hover { color: var(--text); }
-  .tab.active { color: var(--text); background: var(--surface2); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-  .badge { background: var(--border); color: var(--text-dim); border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 600; min-width: 24px; text-align: center; transition: all 0.2s; }
-  .tab.active.live-tab .badge { background: rgba(34,197,94,0.2); color: var(--live); }
-  .tab.active.upcoming-tab .badge { background: rgba(59,130,246,0.2); color: var(--upcoming); }
+  /* --- TABS --- */
+  .tabs-container {
+    padding: 24px 32px 0;
+    position: relative;
+    z-index: 1;
+  }
+  .tabs {
+    display: inline-flex;
+    background: var(--surface);
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    gap: 4px;
+  }
+  .tab {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 20px;
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-muted);
+    background: transparent;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+  .tab.active { color: var(--text); background: var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+  
+  .badge {
+    background: var(--surface-hover);
+    color: var(--text-muted);
+    border-radius: 20px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+  }
+  .tab.active .badge { background: var(--bg); color: var(--text); }
 
-  /* Content & Grid */
-  .content { position: relative; z-index: 1; padding: 24px 32px 40px; max-width: 1300px; margin: 0 auto; }
-  .section { display: none; animation: fadeIn 0.3s ease; }
+  /* --- CONTENT & GRID --- */
+  .content {
+    position: relative;
+    z-index: 1;
+    padding: 24px 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .section { display: none; animation: fadeIn 0.4s ease; }
   .section.active { display: block; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-  .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+  .game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+  }
 
-  /* Cards */
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; transition: all 0.2s ease; position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-  .card:hover { border-color: rgba(245,166,35,0.4); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
-  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 14px 14px 0 0; }
-  .card.live::before { background: linear-gradient(90deg, var(--live), rgba(34,197,94,0.1)); }
-  .card.upcoming::before { background: linear-gradient(90deg, var(--upcoming), rgba(59,130,246,0.1)); }
-  .card.finished::before { background: linear-gradient(90deg, var(--border), transparent); }
+  /* --- CARDS --- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .card:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .card.live { border-color: rgba(16, 185, 129, 0.3); }
+  .card.live:hover { border-color: var(--live); box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15); }
+  .card.live::before { background: linear-gradient(90deg, var(--live), #34d399); }
+  .card.upcoming::before { background: linear-gradient(90deg, var(--upcoming), #60a5fa); }
+  .card.finished::before { background: linear-gradient(90deg, var(--border-hover), var(--border)); }
 
-  .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; gap: 12px; }
-  .league { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text-muted); letter-spacing: 0.5px; line-height: 1.6; flex: 1; min-width: 0; }
-  .league strong { color: var(--accent); display: block; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    gap: 12px;
+  }
+  .league {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+  }
+  .league strong {
+    color: var(--text);
+    display: block;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+  }
+  .status-pill {
+    font-size: 11px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .status-pill.live { background: rgba(16, 185, 129, 0.15); color: var(--live); border: 1px solid rgba(16, 185, 129, 0.3); }
+  .status-pill.upcoming { background: rgba(59, 130, 246, 0.15); color: var(--upcoming); border: 1px solid rgba(59, 130, 246, 0.3); }
+  .status-pill.finished { background: rgba(107, 114, 128, 0.15); color: var(--text-muted); border: 1px solid rgba(107, 114, 128, 0.3); }
+
+  .scoreboard {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    margin: 4px 0 16px;
+    background: var(--bg);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    border: 1px solid var(--border);
+  }
+  .team-block { flex: 1; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+  .team-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 8px;
+  }
+  .team-score {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 46px;
+    line-height: 1;
+    color: var(--text);
+    letter-spacing: 1.5px;
+  }
+  .card.live .team-score { color: var(--live); text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+  .card.finished .team-score { color: var(--text-muted); }
   
-  .status-pill { font-size: 11px; font-weight: 600; font-family: 'DM Mono', monospace; padding: 4px 10px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.5px; }
-  .status-pill.live { background: rgba(34,197,94,0.1); color: var(--live); border: 1px solid rgba(34,197,94,0.2); }
-  .status-pill.upcoming { background: rgba(59,130,246,0.1); color: var(--upcoming); border: 1px solid rgba(59,130,246,0.2); }
-  .status-pill.finished { background: rgba(107,114,128,0.1); color: var(--finished); border: 1px solid rgba(107,114,128,0.2); }
+  .vs-divider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 40px;
+  }
+  .vs-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
 
-  .scoreboard { display: flex; align-items: center; justify-content: space-between; margin: 12px 0; padding: 12px 0; background: rgba(0,0,0,0.15); border-radius: 10px; }
-  .team-block { flex: 1; text-align: center; padding: 0 8px; }
-  .team-name { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; margin-bottom: 6px; }
-  .team-score { font-family: 'Bebas Neue', sans-serif; font-size: 48px; line-height: 1; color: var(--text); letter-spacing: 1.5px; }
-  .card.live .team-score { color: var(--accent); text-shadow: 0 0 15px rgba(245,166,35,0.2); }
-  .card.finished .team-score { color: var(--text-dim); }
+  .card-footer {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px dashed var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .quarters {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .quarters .q-item {
+    background: rgba(255,255,255,0.03);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+  .quarters .q-label { color: var(--text); font-weight: 500; margin-right: 2px; }
   
-  .vs-divider { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; width: 40px; }
-  .vs-text { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); font-weight: 500; }
-  .vs-dash { width: 1px; height: 20px; background: var(--border); }
+  .card-actions { display: flex; gap: 8px; align-items: center; }
+  .clock-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+    background: rgba(245, 166, 35, 0.2);
+    border: 1px solid rgba(245, 166, 35, 0.4);
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+  .pdf-link {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent2);
+    text-decoration: none;
+    background: rgba(0, 229, 160, 0.1);
+    border: 1px solid rgba(0, 229, 160, 0.3);
+    padding: 4px 10px;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .pdf-link:hover { background: rgba(0, 229, 160, 0.2); transform: translateY(-1px); }
 
-  .card-footer { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .quarters { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); line-height: 1.8; flex: 1; }
-  .quarters .q-item { margin-right: 12px; white-space: nowrap; display: inline-block; }
-  .quarters .q-label { color: var(--text-dim); font-weight: 500; }
-  .card-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
-  .clock-badge { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; color: var(--live); background: rgba(34,197,94,0.1); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(34,197,94,0.2); }
-  .pdf-link { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; color: var(--accent2); text-decoration: none; border: 1px solid rgba(0,229,160,0.3); padding: 4px 10px; border-radius: 6px; transition: all 0.2s; background: rgba(0,229,160,0.05); }
-  .pdf-link:hover { background: rgba(0,229,160,0.15); box-shadow: 0 0 10px rgba(0,229,160,0.1); }
-
-  .live-dot { width: 8px; height: 8px; background: var(--live); border-radius: 50%; display: inline-block; animation: pulse 1.5s ease-in-out infinite; margin-right: 6px; vertical-align: baseline; box-shadow: 0 0 8px rgba(34,197,94,0.6); }
-  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+  /* Pulsing animation */
+  .live-dot {
+    width: 8px; height: 8px;
+    background: var(--live);
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse 1.5s infinite;
+    box-shadow: 0 0 8px var(--live);
+  }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
 
   /* States */
-  .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 100px 20px; gap: 20px; color: var(--text-muted); font-family: 'DM Mono', monospace; font-size: 13px; }
-  .spinner { width: 40px; height: 40px; border: 3px solid var(--surface2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  .loading {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 100px 20px; gap: 20px; color: var(--text-muted); font-family: 'DM Mono', monospace;
+  }
+  .spinner {
+    width: 40px; height: 40px; border: 3px solid var(--surface-hover);
+    border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .error-box { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 12px; padding: 20px; margin: 16px 0; font-family: 'DM Mono', monospace; font-size: 12px; color: #f87171; line-height: 1.8; }
-  .error-box a { color: var(--accent); text-decoration: underline; cursor: pointer; }
-  .empty-state { text-align: center; padding: 80px 20px; color: var(--text-muted); font-family: 'DM Mono', monospace; font-size: 13px; background: var(--surface); border: 1px dashed var(--border); border-radius: 16px; }
-  .empty-state .icon { font-size: 36px; margin-bottom: 16px; opacity: 0.8; }
+
+  .error-box {
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+    border-radius: var(--radius-md); padding: 20px; margin: 20px 0;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; color: #fca5a5; line-height: 1.6;
+  }
+  .error-box a { color: var(--text); text-decoration: underline; }
+  
+  .empty-state {
+    text-align: center; padding: 80px 20px; color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif; font-size: 15px; background: var(--surface);
+    border: 1px dashed var(--border); border-radius: var(--radius-lg);
+  }
+  .empty-state .icon { font-size: 36px; margin-bottom: 16px; opacity: 0.5; }
 
   @media(max-width: 768px) {
     header, .filters-bar, .tabs-container, .content { padding-left: 20px; padding-right: 20px; }
-    .tabs-container { padding-top: 20px; }
-    .game-grid { grid-template-columns: 1fr; }
-    .logo { font-size: 26px; }
-    .header-right { width: 100%; justify-content: space-between; }
-    .filters-bar { flex-direction: column; align-items: stretch; gap: 12px; }
-    .filter-group { flex-direction: column; align-items: stretch; gap: 8px; }
-    .filter-divider { display: none; }
+    .filters-bar { flex-direction: column; align-items: stretch; }
+    .filter-group { flex-direction: column; align-items: flex-start; gap: 6px; }
+    select.dropdown, input[type="date"].date-input { width: 100%; }
     .results-count { margin-left: 0; text-align: center; }
-    .tabs { width: 100%; display: flex; }
-    .tab { flex: 1; justify-content: center; padding: 10px 8px; font-size: 11px; }
   }
 </style>
 </head>
@@ -136,47 +464,47 @@
   <div class="logo">🏀 <span>Basketball Live</span></div>
   <div class="header-right">
     <div class="meta" id="meta">—</div>
-    <button class="refresh-btn" id="refreshBtn" onclick="loadData()">↻ Refresh</button>
+    <button class="refresh-btn" id="refreshBtn" onclick="loadData()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-9.5l5.8 5.8"/></svg>
+      Refresh
+    </button>
   </div>
 </header>
 
 <div class="filters-bar">
   <div class="filter-group">
     <span class="filter-label">League</span>
-    <div class="select-wrapper">
-      <select id="leagueSelect" class="styled-input styled-select" onchange="toggleLeague(this.value)">
-        <option value="all">All Leagues</option>
-      </select>
-    </div>
+    <select id="leagueSelect" class="dropdown" onchange="applyFilters()">
+      <option value="all">All Leagues</option>
+    </select>
   </div>
-  
-  <div class="filter-divider"></div>
   
   <div class="filter-group">
     <span class="filter-label">Date</span>
-    <input type="date" class="styled-input date-input" id="dateFilter" onchange="applyFilters()">
+    <input type="date" class="date-input" id="dateFilter" onchange="applyFilters()">
   </div>
 
-  <button class="clear-btn" onclick="clearFilters()">✕ Clear</button>
+  <button class="clear-btn" onclick="clearFilters()">✕ Clear Filters</button>
+  
   <div class="results-count" id="resultsCount"></div>
 </div>
 
 <div class="tabs-container">
   <div class="tabs">
-    <button class="tab live-tab active" onclick="switchTab('live',this)">
-      <span class="live-dot"></span>Live <span class="badge" id="badge-live">—</span>
+    <button class="tab live-tab active" onclick="switchTab('live', this)">
+      <span class="live-dot"></span> Live <span class="badge" id="badge-live">0</span>
     </button>
-    <button class="tab upcoming-tab" onclick="switchTab('upcoming',this)">
-      Upcoming <span class="badge" id="badge-upcoming">—</span>
+    <button class="tab upcoming-tab" onclick="switchTab('upcoming', this)">
+      Upcoming <span class="badge" id="badge-upcoming">0</span>
     </button>
-    <button class="tab finished-tab" onclick="switchTab('finished',this)">
-      Finished <span class="badge" id="badge-finished">—</span>
+    <button class="tab finished-tab" onclick="switchTab('finished', this)">
+      Finished <span class="badge" id="badge-finished">0</span>
     </button>
   </div>
 </div>
 
 <div class="content">
-  <div id="loading" class="loading"><div class="spinner"></div><div>Fetching latest scores…</div></div>
+  <div id="loading" class="loading"><div class="spinner"></div><div>Syncing latest scores...</div></div>
   <div id="error" class="error-box" style="display:none"></div>
   <div id="section-live"     class="section active"></div>
   <div id="section-upcoming" class="section"></div>
@@ -263,12 +591,11 @@ function parseSectioned(text) {
     if (isColHeader(f) || !cols[2] || !cols[2].trim()) continue;
     if (sec) out[sec].push(cols);
   }
-
   out.finished.sort((a,b) => parseDateTime(b[0]) - parseDateTime(a[0]));
   return out;
 }
 
-/* ── LEAGUE DROPDOWN ── */
+/* ── DROPDOWN ── */
 function buildLeagueDropdown(data) {
   const leagues = new Set();
   [...data.live,...data.upcoming,...data.finished].forEach(row => {
@@ -277,34 +604,28 @@ function buildLeagueDropdown(data) {
   });
 
   const select = document.getElementById('leagueSelect');
+  // Preserve current selection if possible
+  const currentVal = select.value;
+  
   select.innerHTML = `<option value="all">All Leagues</option>`;
-
   [...leagues].sort().forEach(l => {
     const short = l.replace('NBL1 ','').replace(' Men',' M').replace(' Women',' W').trim() || l;
-    const opt = document.createElement('option');
-    opt.value = l;
-    opt.textContent = short;
-    if (activeLeague === l) opt.selected = true;
-    select.appendChild(opt);
+    select.innerHTML += `<option value="${l}">${short}</option>`;
   });
-}
-
-function toggleLeague(val) {
-  activeLeague = val;
-  applyFilters();
+  
+  if(leagues.has(currentVal)) { select.value = currentVal; }
 }
 
 function clearFilters() {
-  activeLeague = 'all';
-  activeDate   = '';
-  document.getElementById('dateFilter').value = '';
   document.getElementById('leagueSelect').value = 'all';
+  document.getElementById('dateFilter').value = '';
   applyFilters();
 }
 
 /* ── FILTERS ── */
 function applyFilters() {
-  activeDate = document.getElementById('dateFilter').value;
+  activeLeague = document.getElementById('leagueSelect').value;
+  activeDate   = document.getElementById('dateFilter').value;
 
   const filter = rows => rows.filter(row => {
     const league = (row[1]||'').trim();
@@ -325,7 +646,7 @@ function applyFilters() {
   const total = fL.length + fU.length + fF.length;
   const hasFilter = activeLeague !== 'all' || activeDate;
   document.getElementById('resultsCount').innerHTML = hasFilter
-    ? `<strong>${total}</strong> result${total!==1?'s':''}` : '';
+    ? `Showing <strong>${total}</strong> match${total!==1?'es':''}` : `<strong>${total}</strong> Total Matches`;
 }
 
 /* ── CARD RENDER ── */
@@ -335,7 +656,7 @@ function sd(score) {
   return {h: p[0]||'—', a: p[1]||'—'};
 }
 function extractClock(s) { const m=(s||'').match(/[Qq]\d[\s:]+\d{1,2}:\d{2}/); return m?m[0].trim():null; }
-function extractMins(s)  { const m=(s||'').match(/~(\d+)\s*min/); return m?'~'+m[1]+' min left':null; }
+function extractMins(s)  { const m=(s||'').match(/~(\d+)\s*min/); return m?'~'+m[1]+'m left':null; }
 function cleanLabel(s)   { return (s||'').replace(/^[🟢📅✅]\s*/,'').replace(/·?\s*~\d+\s*min\s*left/,'').trim(); }
 
 function renderCard(row, type) {
@@ -360,13 +681,11 @@ function renderCard(row, type) {
       p = p.trim();
       const colon = p.indexOf(':');
       if (colon < 0) return `<span class="q-item">${p}</span>`;
-      const lbl = p.substring(0, colon).trim();
-      const val = p.substring(colon+1).trim();
-      return `<span class="q-item"><span class="q-label">${lbl}:</span> ${val}</span>`;
+      return `<span class="q-item"><span class="q-label">${p.substring(0, colon).trim()}:</span>${p.substring(colon+1).trim()}</span>`;
     }).join('');
   }
 
-  const pdfHtml   = (pdf||'').startsWith('http') ? `<a href="${pdf}" target="_blank" class="pdf-link">📄 Report</a>` : '';
+  const pdfHtml   = (pdf||'').startsWith('http') ? `<a href="${pdf}" target="_blank" class="pdf-link">📄 Box Score</a>` : '';
   const minsBadge = mins ? `<span class="clock-badge">⏱ ${mins}</span>` : '';
 
   return `<div class="card ${type}">
@@ -380,9 +699,7 @@ function renderCard(row, type) {
         <div class="team-score">${scores.h}</div>
       </div>
       <div class="vs-divider">
-        <div class="vs-dash"></div>
-        <div class="vs-text">${type==='upcoming'?'vs':''}</div>
-        <div class="vs-dash"></div>
+        <div class="vs-text">${type==='upcoming'?'VS':''}</div>
       </div>
       <div class="team-block">
         <div class="team-name">${away||'—'}</div>
@@ -398,8 +715,8 @@ function renderCard(row, type) {
 
 function renderSection(id, rows, type) {
   const el    = document.getElementById('section-'+id);
-  const icons = {live:'⚡',upcoming:'📅',finished:'🏁'};
-  const msg   = activeLeague!=='all'||activeDate ? ' for your selected filters' : ' right now';
+  const icons = {live:'🏀',upcoming:'📅',finished:'🏁'};
+  const msg   = activeLeague!=='all'||activeDate ? ' for this filter' : '';
   el.innerHTML = rows.length
     ? `<div class="game-grid">${rows.map(r=>renderCard(r,type)).join('')}</div>`
     : `<div class="empty-state"><div class="icon">${icons[id]}</div>No ${id} games${msg}.</div>`;
@@ -417,9 +734,9 @@ function switchTab(name, btn) {
 async function loadData() {
   const btn = document.getElementById('refreshBtn');
   btn.disabled = true;
-  btn.innerHTML = '<span class="live-dot" style="animation:none"></span> Loading…';
   document.getElementById('loading').style.display = 'flex';
   document.getElementById('error').style.display   = 'none';
+  document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
 
   try {
     const text = await fetchCSV();
@@ -427,21 +744,24 @@ async function loadData() {
     buildLeagueDropdown(allData);
     applyFilters();
 
-    const total = allData.live.length + allData.upcoming.length + allData.finished.length;
-    const now   = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('meta').innerHTML =
-      `Source: Live Sync &nbsp;·&nbsp; <strong>${total}</strong> games &nbsp;·&nbsp; Updated <strong>${now}</strong>`;
+    const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('meta').innerHTML = `Live sync active &nbsp;·&nbsp; Updated <strong>${now}</strong>`;
+    
+    // Ensure active tab section is shown after load
+    const activeTabId = document.querySelector('.tab.active').classList.contains('live-tab') ? 'live' : 
+                        document.querySelector('.tab.active').classList.contains('upcoming-tab') ? 'upcoming' : 'finished';
+    document.getElementById('section-' + activeTabId).style.display = 'block';
+
   } catch(e) {
     const errEl = document.getElementById('error');
     errEl.style.display = 'block';
-    errEl.innerHTML = `⚠ Could not load data: <strong>${e.message}</strong><br><br>
-      <small>Ensure the proxy is active or check the network tab.
-      <br><br><a href="${CSV_URL}" target="_blank">Open Raw Data directly</a></small>`;
+    errEl.innerHTML = `⚠ Connection Error: <strong>${e.message}</strong><br><br>
+      <small>If all proxies are down, try again in a few moments.<br>
+      <a href="${CSV_URL}" target="_blank">Open Data Source</a></small>`;
   }
 
   document.getElementById('loading').style.display = 'none';
-  btn.disabled    = false;
-  btn.textContent = '↻ Refresh';
+  btn.disabled = false;
 }
 
 loadData();
