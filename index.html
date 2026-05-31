@@ -527,6 +527,29 @@ let activeLeague = 'all';
 let activeDate   = '';
 let activeTab    = 'live'; // track active tab reliably
 
+/* ── DEBUG ── */
+let _debugRows = [];
+let _debugVisible = false;
+document.addEventListener('keydown', e => {
+  if (e.shiftKey && e.key === 'D') {
+    _debugVisible = !_debugVisible;
+    let panel = document.getElementById('debug-panel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'debug-panel';
+      panel.style.cssText = 'position:fixed;bottom:0;left:0;right:0;max-height:40vh;overflow:auto;background:#111;color:#0f0;font:12px monospace;padding:12px;z-index:9999;border-top:2px solid #0f0;';
+      document.body.appendChild(panel);
+    }
+    panel.style.display = _debugVisible ? 'block' : 'none';
+    if (_debugVisible) {
+      panel.innerHTML = '<strong>CSV DEBUG — rows skipped or outside sections:</strong><br>' +
+        (_debugRows.length ? _debugRows.map(r => JSON.stringify(r)).join('<br>') : '(none skipped)') +
+        '<br><br><strong>All parsed counts:</strong> live=' + allData.live.length +
+        ' upcoming=' + allData.upcoming.length + ' finished=' + allData.finished.length;
+    }
+  }
+});
+
 /* ── FETCH ── */
 async function fetchCSV() {
   const errors = [];
@@ -593,11 +616,14 @@ function parseSectioned(text) {
     const cols = parseCSVLine(line);
     const f    = (cols[0]||'').trim();
     if (!f) continue;
-    if (/LIVE|🟢/.test(f))     { sec='live';     continue; }
-    if (/UPCOMING|📅/.test(f)) { sec='upcoming'; continue; }
-    if (/FINISHED|✅/.test(f)) { sec='finished'; continue; }
-    if (isColHeader(f) || !cols[2] || !cols[2].trim()) continue;
+    if (/LIVE|🟢/i.test(f))         { sec='live';     continue; }
+    if (/UPCOMING|📅/i.test(f))     { sec='upcoming'; continue; }
+    if (/FINISHED|COMPLETED|✅/i.test(f)) { sec='finished'; continue; }
+    if (isColHeader(f)) continue;
+    // Only skip if BOTH home (cols[2]) AND away (cols[4]) are empty — don't skip on home alone
+    if (!cols[2]?.trim() && !cols[4]?.trim()) continue;
     if (sec) out[sec].push(cols);
+    else { _debugRows.push({reason:'no-section', cols: cols.slice(0,5)}); console.warn('[parseSectioned] row outside any section:', cols.slice(0,3)); }
   }
   out.finished.sort((a,b) => parseDateTime(b[0]) - parseDateTime(a[0]));
   return out;
@@ -753,8 +779,18 @@ async function loadData() {
     buildLeagueDropdown(allData);
     applyFilters();
 
-    const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('meta').innerHTML = `Live sync active &nbsp;·&nbsp; Updated <strong>${now}</strong>`;
+    // Extract the "Updated: ..." timestamp from the CSV tracker header row
+    const headerLine = text.split('\n').find(l => l.includes('BASKETBALL LIVE TRACKER') && l.includes('Updated:'));
+    let sheetUpdated = '';
+    if (headerLine) {
+      // Timestamp format: "31 May 2026, 11:58:30 IST" — contains a comma so match past it
+      const m = headerLine.match(/Updated:\s*(\d{1,2}\s+\w+\s+\d{4},?\s*[\d:]+\s*IST)/);
+      if (m) sheetUpdated = m[1].trim();
+    }
+    const metaText = sheetUpdated
+      ? `Sheet updated &nbsp;·&nbsp; <strong>${sheetUpdated}</strong>`
+      : `Live sync active &nbsp;·&nbsp; <strong>${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</strong>`;
+    document.getElementById('meta').innerHTML = metaText;
     
     // Restore the active tab section reliably using tracked variable
     document.querySelectorAll('.section').forEach(s => s.style.display = '');
@@ -783,7 +819,7 @@ async function loadData() {
 }
 
 loadData();
-setInterval(loadData, 60000);
+setInterval(loadData, 120000); // 2 minute auto-refresh
 </script>
 </body>
 </html>
