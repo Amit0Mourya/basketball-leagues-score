@@ -515,32 +515,40 @@
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQBKSb82emMAMroneJYozR9pV04p0EQg1jB1gbM2kAqm8jTYJkChbZdrAioH_BI-5L10CKrBE-G4Vfp/pub?gid=766531449&single=true&output=csv';
 
 const PROXIES = [
+  // Each proxy wraps the URL differently; cache-bust goes on the PROXY param, not the CSV URL
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-  u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
   u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  u => `https://thingproxy.freeboard.io/fetch/${u}`,
+  u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+  u => `https://corsproxy.io/?${encodeURIComponent(u)}&_cb=${Date.now()}`, // retry corsproxy fresh
 ];
 
 let allData = { live:[], upcoming:[], finished:[] };
 let activeLeague = 'all';
 let activeDate   = '';
+let activeTab    = 'live'; // track active tab reliably
 
 /* ── FETCH ── */
 async function fetchCSV() {
-  let lastErr = '';
-  for (const proxy of PROXIES) {
+  const errors = [];
+  // Use the plain CSV_URL — no unknown params appended (Google rejects them).
+  for (const [i, proxy] of PROXIES.entries()) {
+    const proxyUrl = proxy(CSV_URL);
+    const proxyName = proxyUrl.match(/https?:\/\/([^/?]+)/)?.[1] || `proxy-${i}`;
     try {
       const ctrl = new AbortController();
-      const tid  = setTimeout(() => ctrl.abort(), 9000);
-      const r    = await fetch(proxy(CSV_URL), { signal: ctrl.signal });
+      const tid  = setTimeout(() => ctrl.abort(), 12000);
+      const r    = await fetch(proxyUrl, { signal: ctrl.signal, cache: 'no-store' });
       clearTimeout(tid);
-      if (!r.ok) { lastErr = 'HTTP ' + r.status; continue; }
+      if (!r.ok) { errors.push(`${proxyName}: HTTP ${r.status}`); continue; }
       const text = await r.text();
       if (text && text.length > 100) return text;
-      lastErr = 'Empty response';
-    } catch(e) { lastErr = e.message || String(e); }
+      errors.push(`${proxyName}: empty response`);
+    } catch(e) {
+      const reason = e.name === 'AbortError' ? 'timeout' : (e.message || String(e));
+      errors.push(`${proxyName}: ${reason}`);
+    }
   }
-  throw new Error(lastErr || 'All proxies failed');
+  throw new Error('All proxies failed — ' + errors.join(' | '));
 }
 
 /* ── CSV PARSE ── */
@@ -724,6 +732,7 @@ function renderSection(id, rows, type) {
 }
 
 function switchTab(name, btn) {
+  activeTab = name;
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   btn.classList.add('active');
@@ -747,17 +756,26 @@ async function loadData() {
     const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     document.getElementById('meta').innerHTML = `Live sync active &nbsp;·&nbsp; Updated <strong>${now}</strong>`;
     
-    // Ensure active tab section is shown after load
-    const activeTabId = document.querySelector('.tab.active').classList.contains('live-tab') ? 'live' : 
-                        document.querySelector('.tab.active').classList.contains('upcoming-tab') ? 'upcoming' : 'finished';
-    document.getElementById('section-' + activeTabId).style.display = 'block';
+    // Restore the active tab section reliably using tracked variable
+    document.querySelectorAll('.section').forEach(s => s.style.display = '');
+    document.getElementById('section-' + activeTab).classList.add('active');
 
   } catch(e) {
     const errEl = document.getElementById('error');
     errEl.style.display = 'block';
-    errEl.innerHTML = `⚠ Connection Error: <strong>${e.message}</strong><br><br>
-      <small>If all proxies are down, try again in a few moments.<br>
-      <a href="${CSV_URL}" target="_blank">Open Data Source</a></small>`;
+
+    // Detect the "Host not in allowlist" / sheet-unpublished case
+    const msg = e.message || '';
+    const isSheetDown = msg.includes('allowlist') || msg.includes('403') || msg.includes('Failed to fetch');
+    const hint = isSheetDown
+      ? `<br><br><strong>⚠ The Google Sheet appears to be unpublished or private.</strong><br>
+         <small>Go to <em>File → Share → Publish to web</em> in your sheet and re-publish it as CSV.<br>
+         Then update the <code>CSV_URL</code> in this file with the new link.<br><br>
+         <a href="${CSV_URL}" target="_blank" style="color:var(--accent)">Try opening the data source directly →</a></small>`
+      : `<br><br><small>All CORS proxies failed. Try again in a few moments.<br>
+         <a href="${CSV_URL}" target="_blank" style="color:var(--accent)">Open Data Source</a></small>`;
+
+    errEl.innerHTML = `⚠ Connection Error: <strong>${msg || 'Could not reach data source'}</strong>${hint}`;
   }
 
   document.getElementById('loading').style.display = 'none';
