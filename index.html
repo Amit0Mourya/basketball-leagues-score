@@ -732,9 +732,9 @@ function applyFilters() {
 function isOTGame(row) {
   const status   = (row[5] || '').toLowerCase();
   const quarters = (row[6] || '').toLowerCase();
-  // quarters column contains "OT: 15-12" when OT happened
+  // quarters column formats: "OT: 12-11", "OT1: 12-11", "OT2: 8-6" etc.
   // status may contain "overtime"
-  return status.includes('overtime') || quarters.includes('ot:') || quarters.includes('overtime');
+  return status.includes('overtime') || /\bot\d*:/.test(quarters) || quarters.includes('overtime');
 }
 
 /* ── CARD RENDER ── */
