@@ -473,6 +473,34 @@
   }
   .empty-state .icon { font-size: 36px; margin-bottom: 16px; opacity: 0.5; }
 
+  /* ── LOAD MORE SENTINEL ── */
+  .load-more-sentinel {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dim);
+    font-size: 13px;
+    font-family: 'DM Mono', monospace;
+    gap: 8px;
+  }
+  .load-more-sentinel .lm-spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  .load-more-sentinel.loading .lm-spinner { display: block; }
+  .finished-count {
+    text-align: center;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-dim);
+    padding: 8px 0 4px;
+  }
+
   @media(max-width: 768px) {
     header, .filters-bar, .tabs-container, .content { padding-left: 20px; padding-right: 20px; }
     .filters-bar { flex-direction: column; align-items: stretch; }
@@ -556,6 +584,12 @@ let activeLeague = 'all';
 let activeDate   = '';
 let activeTab    = 'live'; // track active tab reliably
 let activeOT     = false;  // OT-only filter for finished section
+
+// Finished section pagination
+const PAGE_SIZE      = 15;
+let finishedRows     = [];   // full filtered finished dataset
+let finishedPage     = 0;    // how many pages already rendered
+let finishedObserver = null; // IntersectionObserver for sentinel
 
 /* ── DEBUG ── */
 let _debugRows = [];
@@ -806,13 +840,94 @@ function renderCard(row, type) {
 }
 
 function renderSection(id, rows, type) {
-  const el    = document.getElementById('section-'+id);
-  const icons = {live:'🏀',upcoming:'📅',finished:'🏁'};
-  const msg   = activeLeague!=='all'||activeDate ? ' for this filter' : '';
-  el.innerHTML = rows.length
-    ? `<div class="game-grid">${rows.map(r=>renderCard(r,type)).join('')}</div>`
-    : `<div class="empty-state"><div class="icon">${icons[id]}</div>No ${id} games${msg}.</div>`;
+  const el  = document.getElementById('section-'+id);
+  const msg = activeLeague!=='all'||activeDate||activeOT ? ' for this filter' : '';
+
+  if (id === 'finished') {
+    renderFinishedSection(rows, msg);
+  } else {
+    const icons = {live:'🏀',upcoming:'📅'};
+    el.innerHTML = rows.length
+      ? `<div class="game-grid">${rows.map(r=>renderCard(r,type)).join('')}</div>`
+      : `<div class="empty-state"><div class="icon">${icons[id]||'🏁'}</div>No ${id} games${msg}.</div>`;
+  }
   document.getElementById('badge-'+id).textContent = rows.length;
+}
+
+function renderFinishedSection(rows, msg) {
+  const el = document.getElementById('section-finished');
+
+  // Disconnect old observer
+  if (finishedObserver) { finishedObserver.disconnect(); finishedObserver = null; }
+
+  if (!rows.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">🏁</div>No finished games${msg}.</div>`;
+    return;
+  }
+
+  // Reset pagination state
+  finishedRows = rows;
+  finishedPage = 0;
+
+  // Build container
+  el.innerHTML = `
+    <div class="finished-count" id="finished-count"></div>
+    <div class="game-grid" id="finished-grid"></div>
+    <div class="load-more-sentinel" id="finished-sentinel">
+      <div class="lm-spinner"></div>
+      <span class="lm-text"></span>
+    </div>`;
+
+  appendFinishedPage();
+  setupFinishedObserver();
+}
+
+function appendFinishedPage() {
+  const grid     = document.getElementById('finished-grid');
+  const sentinel = document.getElementById('finished-sentinel');
+  const countEl  = document.getElementById('finished-count');
+  if (!grid) return;
+
+  const start   = finishedPage * PAGE_SIZE;
+  const end     = Math.min(start + PAGE_SIZE, finishedRows.length);
+  const chunk   = finishedRows.slice(start, end);
+
+  grid.insertAdjacentHTML('beforeend', chunk.map(r => renderCard(r, 'finished')).join(''));
+  finishedPage++;
+
+  const shown = Math.min(finishedPage * PAGE_SIZE, finishedRows.length);
+  const total = finishedRows.length;
+  countEl.textContent = `Showing ${shown} of ${total} finished games`;
+
+  // Update sentinel
+  const remaining = total - shown;
+  if (remaining <= 0) {
+    sentinel.style.display = 'none';
+  } else {
+    sentinel.classList.remove('loading');
+    document.querySelector('#finished-sentinel .lm-text').textContent =
+      `Scroll for more (${remaining} remaining)`;
+  }
+}
+
+function setupFinishedObserver() {
+  const sentinel = document.getElementById('finished-sentinel');
+  if (!sentinel) return;
+
+  finishedObserver = new IntersectionObserver((entries) => {
+    if (!entries[0].isIntersecting) return;
+    const shown = finishedPage * PAGE_SIZE;
+    if (shown >= finishedRows.length) return;
+
+    sentinel.classList.add('loading');
+    // Small delay so spinner is visible
+    setTimeout(() => {
+      appendFinishedPage();
+      sentinel.classList.remove('loading');
+    }, 150);
+  }, { threshold: 0.1 });
+
+  finishedObserver.observe(sentinel);
 }
 
 function switchTab(name, btn) {
