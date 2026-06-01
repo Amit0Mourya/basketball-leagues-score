@@ -442,6 +442,30 @@
   }
   .error-box a { color: var(--text); text-decoration: underline; }
   
+  /* OT Filter Button */
+  .ot-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    background: rgba(168, 85, 247, 0.08);
+    color: #c084fc;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .ot-btn:hover  { background: rgba(168, 85, 247, 0.18); border-color: rgba(168, 85, 247, 0.7); }
+  .ot-btn.active { background: rgba(168, 85, 247, 0.25); border-color: #c084fc; color: #e9d5ff; box-shadow: 0 0 10px rgba(168,85,247,0.3); }
+
+  /* OT status pill */
+  .status-pill.ot {
+    background: rgba(168, 85, 247, 0.15);
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    color: #c084fc;
+  }
+
   .empty-state {
     text-align: center; padding: 80px 20px; color: var(--text-muted);
     font-family: 'DM Sans', sans-serif; font-size: 15px; background: var(--surface);
@@ -482,6 +506,11 @@
   <div class="filter-group">
     <span class="filter-label">Date</span>
     <input type="date" class="date-input" id="dateFilter" onchange="applyFilters()">
+  </div>
+
+  <div class="filter-group">
+    <span class="filter-label">Special</span>
+    <button class="ot-btn" id="otBtn" onclick="toggleOT()">⚡ OT Games</button>
   </div>
 
   <button class="clear-btn" onclick="clearFilters()">✕ Clear Filters</button>
@@ -526,6 +555,7 @@ let allData = { live:[], upcoming:[], finished:[] };
 let activeLeague = 'all';
 let activeDate   = '';
 let activeTab    = 'live'; // track active tab reliably
+let activeOT     = false;  // OT-only filter for finished section
 
 /* ── DEBUG ── */
 let _debugRows = [];
@@ -650,9 +680,17 @@ function buildLeagueDropdown(data) {
   if(leagues.has(currentVal)) { select.value = currentVal; }
 }
 
+function toggleOT() {
+  activeOT = !activeOT;
+  document.getElementById('otBtn').classList.toggle('active', activeOT);
+  applyFilters();
+}
+
 function clearFilters() {
   document.getElementById('leagueSelect').value = 'all';
   document.getElementById('dateFilter').value = '';
+  activeOT = false;
+  document.getElementById('otBtn').classList.remove('active');
   applyFilters();
 }
 
@@ -661,26 +699,42 @@ function applyFilters() {
   activeLeague = document.getElementById('leagueSelect').value;
   activeDate   = document.getElementById('dateFilter').value;
 
-  const filter = rows => rows.filter(row => {
+  const filter = (rows, applyOT) => rows.filter(row => {
     const league = (row[1]||'').trim();
     const date   = extractDate(row[0]||'');
     if (activeLeague !== 'all' && league !== activeLeague) return false;
     if (activeDate && date && date !== activeDate) return false;
+    if (applyOT && activeOT && !isOTGame(row)) return false;
     return true;
   });
 
-  const fL = filter(allData.live);
-  const fU = filter(allData.upcoming);
-  const fF = filter(allData.finished);
+  const fL = filter(allData.live,     false);
+  const fU = filter(allData.upcoming, false);
+  const fF = filter(allData.finished, true);  // OT filter only on finished
 
   renderSection('live',     fL, 'live');
   renderSection('upcoming', fU, 'upcoming');
   renderSection('finished', fF, 'finished');
 
   const total = fL.length + fU.length + fF.length;
-  const hasFilter = activeLeague !== 'all' || activeDate;
-  document.getElementById('resultsCount').innerHTML = hasFilter
-    ? `Showing <strong>${total}</strong> match${total!==1?'es':''}` : `<strong>${total}</strong> Total Matches`;
+  const hasFilter = activeLeague !== 'all' || activeDate || activeOT;
+  let countHtml;
+  if (activeOT)
+    countHtml = `Showing <strong>${fF.length}</strong> OT game${fF.length!==1?'s':''} in Finished`;
+  else if (hasFilter)
+    countHtml = `Showing <strong>${total}</strong> match${total!==1?'es':''}`;
+  else
+    countHtml = `<strong>${total}</strong> Total Matches`;
+  document.getElementById('resultsCount').innerHTML = countHtml;
+}
+
+/* ── OT DETECTION ── */
+function isOTGame(row) {
+  const status   = (row[5] || '').toLowerCase();
+  const quarters = (row[6] || '').toLowerCase();
+  // quarters column contains "OT: 15-12" when OT happened
+  // status may contain "overtime"
+  return status.includes('overtime') || quarters.includes('ot:') || quarters.includes('overtime');
 }
 
 /* ── CARD RENDER ── */
@@ -706,8 +760,12 @@ function renderCard(row, type) {
     pill = `<span class="status-pill live"><span class="live-dot"></span>${clock||label||'LIVE'}</span>`;
   else if (type==='upcoming')
     pill = `<span class="status-pill upcoming">${label||'Upcoming'}</span>`;
-  else
-    pill = `<span class="status-pill finished">Final</span>`;
+  else {
+    const ot = isOTGame(row);
+    pill = ot
+      ? `<span class="status-pill ot">Final/OT</span>`
+      : `<span class="status-pill finished">Final</span>`;
+  }
 
   let qHtml = '';
   if (q) {
